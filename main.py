@@ -255,3 +255,24 @@ for epoch in range(opt.niter):
     # do checkpointing
     torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
     torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
+
+netG.eval()
+print('generating samples...')
+os.makedirs('%s/gen' % (opt.outf))
+n_images = 10000
+curr_images = 0
+while curr_images < n_images:
+    noise.data.resize_(batch_size, nz, 1, 1).normal_(0, 1)
+    label = np.random.randint(0, num_classes, batch_size)
+    noise_ = np.random.normal(0, 1, (batch_size, nz))
+    class_onehot = np.zeros((batch_size, num_classes))
+    class_onehot[np.arange(batch_size), label] = 1
+    noise_[np.arange(batch_size), :num_classes] = class_onehot[np.arange(batch_size)]
+    noise_ = (torch.from_numpy(noise_))
+    noise.data.copy_(noise_.view(batch_size, nz, 1, 1))
+
+    fake = netG(noise)
+    fake = fake * 0.5 + 0.5
+    for img in fake:
+        vutils.save_image(fake, '%s/gen/image_%d.png' % (opt.outf, curr_images))
+        curr_images += 1
